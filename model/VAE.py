@@ -84,14 +84,14 @@ class Decoder(nn.Module):
 
     def forward(self, input, z, init):
         input = self.dropout(input)
-        batch_size, len, _ = input.size()
+        batch_size, seq_len, _ = input.size()
 
-        z = torch.stack([z] * len, dim = 1)
+        z = torch.stack([z] * seq_len, dim = 1)
         decoder_input = torch.cat([input, z], dim = -1)
         rnn_out, final_state = self.rnn(decoder_input, init)
 
         y = self.proj(rnn_out.contiguous().view(-1, self.hidden_dim))
-        y = y.view(batch_size, len, self.vocab_size)
+        y = y.view(batch_size, seq_len, self.vocab_size)
 
         return y
 
