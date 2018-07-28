@@ -67,7 +67,7 @@ class Decoder(nn.Module):
         self.pad = args.pad
 
         self.text_embedder = nn.Embedding(self.vocab_size, self.embed_dim, padding_idx=self.pad)
-        self.input_dim = self.embed_dim + self.z_dim
+        self.input_dim = self.embed_dim
         self.num_layer = args.num_layer
         self.bidirectional = args.bidirectional
         self.vocab_size = args.vocab_size
@@ -82,13 +82,12 @@ class Decoder(nn.Module):
         self.hidden_dim = (2 if self.bidirectional else 1) * self.num_layer * self.rnn_dim
         self.proj = nn.Linear(self.hidden_dim, self.vocab_size)
 
-    def forward(self, input, z, init):
+    def forward(self, input, z):
         input = self.dropout(input)
         batch_size, len, _ = input.size()
 
-        z = torch.stack([z] * len, dim = 1)
-        decoder_input = torch.cat([input, z], dim = -1)
-        rnn_out, final_state = self.rnn(decoder_input, init)
+        h = (z, z)
+        rnn_out, final_state = self.rnn(input, h)
 
         y = self.proj(rnn_out.contiguous().view(-1, self.hidden_dim))
         y = y.view(batch_size, len, self.vocab_size)
@@ -134,4 +133,24 @@ class RVAE(nn.Module):
         word = torch.LongTensor([self.sos])
         word = word.cuda() if torch.cuda.is_available() else word
         z = z.view(1, 1, -1)
+        h = (z, z)
 
+        outputs = []
+        outputs.append(self.sos)
+
+        for i in range(self.MAX_SENT_LEN):
+            emb = self.decoder.text_embedder(word).view(1, 1, -1)
+            y, h = self.decoder.sample_(emb, z, h)
+            y = F.softmax(y / temp, dim=0)
+
+            idx = torch.multinomial(y, 1)
+            word = torch.LongTensor([int(idx)])
+            word = word.cuda() if torch.cuda.is_available() else word
+            idx = int(idx)
+
+            if idx == self.EOS_IDX:
+                break
+
+            outputs.append(idx)
+
+        return outputs
