@@ -18,4 +18,4 @@ parser.add_argument('-save-file', type=str, default=None, help='File path/name f
 parser.add_argument('-log-interval', type=int, default=1000, help='Number of iterations to sample generated sentences')
 args = parser.parse_args()
 
-train_iter, valid_iter, test_iter = dataset.ptb(vector=args.word_emb)
+(train_iter, valid_iter, test_iter), text_field = dataset.ptb(args.word_emb)
