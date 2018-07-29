@@ -32,8 +32,8 @@ if __name__ == '__main__':
     args.pad = text_field.vocab.stoi['<pad>']
 
     rvae = RVAE(args)
-    rvae.decoder.text_embedder.weight = text_field.vocab.vectors
-    rvae.encoder.text_embedder.weight = text_field.vocab.vectors
+    rvae.decoder.text_embedder.weight.data = text_field.vocab.vectors.data
+    rvae.encoder.text_embedder.weight.data = text_field.vocab.vectors.data
 
     update_params = chain(rvae.encoder.parameters(), rvae.decoder.parameters())
     update_params = filter(lambda x:x.requires_grad, update_params)
