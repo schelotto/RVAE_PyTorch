@@ -74,7 +74,7 @@ if __name__ == '__main__':
         if it > kld_start_inc and kld_weight < kld_max:
             kld_weight += kld_inc
 
-        ce_loss = F.cross_entropy(output, text.view(-1, args.vocab_size), size_average=False)
+        ce_loss = F.cross_entropy(output, text.view(-1), size_average=False)
         kl_loss = kld_weight * kld
         loss = ce_loss + kl_loss
 
