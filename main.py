@@ -75,7 +75,7 @@ if __name__ == '__main__':
             kld_weight += kld_inc
 
         ce_loss = F.cross_entropy(output, text.view(-1), size_average=False)
-        kl_loss = kld_weight * kld
+        kl_loss = kld
         loss = ce_loss + kl_loss
 
         optim.zero_grad()

@@ -94,7 +94,7 @@ class Decoder(nn.Module):
         input = self.text_embedder(input)
         batch_size, seq_len, _ = input.size()
 
-        init = (z, z)
+        init = (z, None)
         rnn_out, final_state = self.rnn(input, init)
 
         y = self.proj(rnn_out.contiguous().view(-1, self.hidden_dim))
@@ -138,7 +138,7 @@ class RVAE(nn.Module):
         word = torch.LongTensor([self.sos]).view(1, -1)
         word = word.cuda() if torch.cuda.is_available() else word
         z = z.view(1, 1, -1)
-        h = (z, z)
+        h = (z, None)
         outputs = []
 
         while True:
