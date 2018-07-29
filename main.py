@@ -19,3 +19,4 @@ parser.add_argument('-log-interval', type=int, default=1000, help='Number of ite
 args = parser.parse_args()
 
 (train_iter, valid_iter, test_iter), text_field = dataset.ptb(args.word_emb)
+print(text_field.vocab.itos)
