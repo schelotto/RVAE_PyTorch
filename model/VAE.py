@@ -145,6 +145,7 @@ class RVAE(nn.Module):
             y, h = self.decoder.sample_(emb, h)
             y = F.softmax(y/temp, dim=-1)
 
+            print(y.size())
             idx = torch.multinomial(y, 1)
 
             word = torch.LongTensor([int(idx)])
