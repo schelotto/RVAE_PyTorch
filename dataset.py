@@ -104,6 +104,6 @@ if __name__ == '__main__':
                  eos_token='<eos>',
                  batch_first=True,
                  tokenize=lambda x:x.split())
-    (train, valid, test), TEXT = dataset.ptb(TEXT)
+    (train, valid, test), TEXT = dataset.ptb(TEXT, vector='glove_840B')
     print(len(TEXT.vocab.stoi))
     print(len(train))
