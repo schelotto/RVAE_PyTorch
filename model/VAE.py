@@ -87,7 +87,9 @@ class Decoder(nn.Module):
         self.hidden_dim = (2 if self.bidirectional else 1) * self.num_layer * self.rnn_dim
         self.proj = nn.Linear(self.hidden_dim, self.vocab_size)
 
-    def forward(self, input: torch.Tensor, z:torch.Tensor):
+    def forward(self,
+                input: torch.Tensor,
+                z:torch.Tensor):
         input = self.word_dropout(input)
         input = self.text_embedder(input)
         batch_size, seq_len, _ = input.size()
@@ -96,7 +98,7 @@ class Decoder(nn.Module):
         rnn_out, final_state = self.rnn(input, init)
 
         y = self.proj(rnn_out.contiguous().view(-1, self.hidden_dim))
-        y = y.view(batch_size, seq_len, self.vocab_size)
+        y = y.view(-1, self.vocab_size)
 
         return y
 
@@ -123,8 +125,8 @@ class RVAE(nn.Module):
         h_t, (mu, logvar) = self.encoder(input)
         z_real = mu + torch.randn_like(mu) * (0.5 * logvar).exp()
         kld = self.kld_(mu, logvar)
-        output, final_state = self.decoder(input, z_real, h_t)
-        return output, kld, final_state
+        output = self.decoder(input, z_real)
+        return output, kld
 
     def sample_sentence(self, z, temp = 1):
         """
