@@ -69,12 +69,12 @@ if __name__ == '__main__':
         if torch.cuda.is_available():
             text = text.cuda()
 
-        output, kld, _ = rvae(text)
+        output, kld = rvae(text)
 
         if it > kld_start_inc and kld_weight < kld_max:
             kld_weight += kld_inc
 
-        ce_loss = F.cross_entropy(output, text, size_average=False)
+        ce_loss = F.cross_entropy(output, text.view(-1, args.vocab_size), size_average=False)
         kl_loss = kld_weight * kld
         loss = ce_loss + kl_loss
 
