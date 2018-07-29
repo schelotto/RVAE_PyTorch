@@ -74,6 +74,8 @@ class dataset(Dataset):
         train_iter, valid_iter, test_iter = data.BucketIterator.splits((train, valid, test),
                                                                        batch_sizes=(batch_size, batch_size, batch_size),
                                                                        device=device,
+                                                                       shuffle=True,
+                                                                       repeat=True,
                                                                        **kwargs)
         if vector == 'glove_6B':
             vectors = GloVe('6B', dim=300)
@@ -87,7 +89,7 @@ class dataset(Dataset):
         except UnboundLocalError:
             text_field.build_vocab(train, valid, test)
 
-        return (train_iter, valid_iter, test_iter), text_field
+        return (iter(train_iter), iter(valid_iter), iter(test_iter)), text_field
 
 def load_data(word_emb):
     text_field = Field(init_token='<sos>',
@@ -97,7 +99,7 @@ def load_data(word_emb):
                        batch_first=True,
                        tokenize=lambda x: x.split())
 
-    return dataset.ptb(text_field, word_emb)
+    return dataset.ptb(text_field, vector=word_emb)
 
 if __name__ == '__main__':
     TEXT = Field(init_token='<sos>',
