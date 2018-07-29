@@ -104,7 +104,7 @@ class Decoder(nn.Module):
 
     def sample_(self, embed, h):
         output, h = self.rnn(embed, h)
-        y = self.decoder.proj(output)
+        y = self.proj(output)
         return y, h
 
 class RVAE(nn.Module):
