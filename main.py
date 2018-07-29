@@ -87,6 +87,9 @@ if __name__ == '__main__':
                   .format(it + 1, args.train_iter, ce_loss.data.item(), kld.data.item()))
 
             z = torch.randn(1, args.z_dim)
+            if torch.cuda.is_available():
+                z = z.cuda()
+                
             sampled_indices = rvae.sample_sentence(z)
             sampled_sentence = list(map(lambda x:text_field.itos[x], sampled_indices))
             print('Sample: {}'.format(' '.join(sampled_sentence)))
