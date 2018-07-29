@@ -30,6 +30,7 @@ if __name__ == '__main__':
     args.sos = text_field.vocab.stoi['<sos>']
     args.eos = text_field.vocab.stoi['<eos>']
     args.pad = text_field.vocab.stoi['<pad>']
+    args.unk = text_field.vocab.stoi['<unk>']
 
     rvae = RVAE(args)
 
