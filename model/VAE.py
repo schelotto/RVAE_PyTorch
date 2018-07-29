@@ -148,7 +148,7 @@ class RVAE(nn.Module):
             y = F.softmax(y/temp, dim=-1)
 
             idx = torch.max(y, dim=-1)[1]
-            idx = idx.data.item()
+            idx = idx.item()
 
             word = torch.LongTensor([int(idx)])
             word = word.cuda() if torch.cuda.is_available() else word
