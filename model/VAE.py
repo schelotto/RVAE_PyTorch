@@ -113,7 +113,7 @@ class RVAE(nn.Module):
 
         self.eos = args.eos
         self.sos = args.sos
-        self.lad = args.pad
+        self.pad = args.pad
 
         self.encoder = Encoder(args)
         self.decoder = Decoder(args)
