@@ -134,14 +134,15 @@ class RVAE(nn.Module):
         :param temp: temperature in softmax, default 1
         :return: sampled sequence of words
         """
-        word = torch.LongTensor([self.sos])
+        word = torch.LongTensor([self.sos]).view(1, -1)
         word = word.cuda() if torch.cuda.is_available() else word
         h = z.view(1, 1, -1)
 
         outputs = []
 
         while True:
-            emb = self.decoder.text_embedder(word).view(1, 1, -1)
+            emb = self.decoder.text_embedder(word)
+            print(h.size())
             y, h = self.decoder.sample_(emb, h)
             y = F.softmax(y/temp, dim=0)
 
