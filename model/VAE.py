@@ -53,7 +53,7 @@ class Encoder(nn.Module):
     def forward(self, input: torch.Tensor):
         input = self.word_dropout(input)
         word_embed = self.text_embedder(input)
-        _, (h_t, c_t) = self.rnn(word_embed)
+        _, h_t = self.rnn(word_embed)
         mu = self.proj_mu(h_t)
         logvar = self.proj_logvar(h_t)
         return h_t, (mu, logvar)
@@ -147,7 +147,7 @@ class RVAE(nn.Module):
             y, h = self.decoder.sample_(emb, h)
             y = F.softmax(y/temp, dim=-1)
 
-            idx = torch.multinomial(y.squeeze(), 1)
+            _, idx = torch.topk(y.squeeze(), 1, dim=-1)
 
             word = torch.LongTensor([int(idx)])
             word = word.cuda() if torch.cuda.is_available() else word
