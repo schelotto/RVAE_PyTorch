@@ -56,7 +56,6 @@ if __name__ == '__main__':
     rvae.decoder.text_embedder.weight.requires_grad = False
     rvae.encoder.text_embedder.weight.requires_grad = False
 
-
     update_params = filter(lambda x:x.requires_grad,  chain(rvae.encoder.parameters(), rvae.decoder.parameters()))
     optim = torch.optim.Adam(update_params, lr=1e-3)
 
@@ -124,8 +123,4 @@ if __name__ == '__main__':
             if not os.path.isdir('trained_model'):
                 os.makedirs('trained_model')
 
-<<<<<<< HEAD
-            torch.save(rvae.state_dict(), 'trained_model/RVAE.pt')
-=======
-            torch.save(rvae.state_dict(), 'trained_model/RVAE.pt')
->>>>>>> f396100dea5fd77204e90f20740f7c46ec32f167
+        torch.save(rvae.state_dict(), 'trained_model/RVAE.pt')
