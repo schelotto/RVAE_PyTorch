@@ -119,7 +119,7 @@ class RVAE(nn.Module):
         self.decoder = Decoder(args)
 
     def kld_(self, mu, logvar):
-        kld = (mu.pow(2) + logvar.exp() - logvar - 1).mean()
+        kld = (mu.pow(2) + logvar.exp() - logvar - 1).sum()
         return kld
 
     def forward(self, input):
@@ -156,7 +156,7 @@ class RVAE(nn.Module):
 
             if idx == self.eos or idx == self.pad:
                 break
-                
+
             outputs.append(idx)
 
         return outputs
