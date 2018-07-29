@@ -15,10 +15,10 @@ class WordDropout(nn.Module):
     def forward(self, inputs):
         if self.training:
             if torch.cuda.is_available():
-                mask = Binomial(1, self.p * torch.ones_like(inputs.cpu())).sample().long()
+                mask = Binomial(1, self.p * torch.ones_like(inputs.float().cpu())).sample().long()
                 mask = mask.cuda()
             else:
-                mask = Binomial(1, self.p * torch.ones_like(inputs)).sample().long()
+                mask = Binomial(1, self.p * torch.ones_like(inputs.float())).sample().long()
             inputs[mask] = self.unk_token
             return inputs
         else:
