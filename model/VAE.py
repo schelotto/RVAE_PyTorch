@@ -13,16 +13,18 @@ class WordDropout(nn.Module):
         self.unk_token = unk_token
 
     def forward(self, inputs):
+        data = inputs.clone()
         if self.training:
             if torch.cuda.is_available():
                 mask = Binomial(1, self.p * torch.ones_like(inputs.float().cpu())).sample().long()
                 mask = mask.cuda()
             else:
                 mask = Binomial(1, self.p * torch.ones_like(inputs.float())).sample().long()
-            inputs[mask] = self.unk_token
-            return inputs
+
+            data[mask] = self.unk_token
+            return data
         else:
-            return inputs
+            return data
 
 class Encoder(nn.Module):
     def __init__(self, args):
@@ -37,7 +39,7 @@ class Encoder(nn.Module):
         self.pad = args.pad
         self.unk = args.unk
 
-        self.text_embedder = nn.Embedding(self.vocab_size, self.embed_dim, padding_idx=self.pad)
+        self.text_embedder = nn.Embedding(self.vocab_size, self.embed_dim)
         self.word_dropout = WordDropout(unk_token=self.unk, p=args.p)
 
         self.rnn = nn.GRU(self.embed_dim,
@@ -51,8 +53,8 @@ class Encoder(nn.Module):
         self.proj_logvar = nn.Linear(self.hidden_dim, self.z_dim)
 
     def forward(self, input: torch.Tensor):
-        input = self.word_dropout(input)
-        word_embed = self.text_embedder(input)
+        dropped = self.word_dropout(input)
+        word_embed = self.text_embedder(dropped)
         _, h_t = self.rnn(word_embed)
         mu = self.proj_mu(h_t)
         logvar = self.proj_logvar(h_t)
@@ -69,7 +71,7 @@ class Decoder(nn.Module):
         self.pad = args.pad
         self.unk = args.unk
 
-        self.text_embedder = nn.Embedding(self.vocab_size, self.embed_dim, padding_idx=self.pad)
+        self.text_embedder = nn.Embedding(self.vocab_size, self.embed_dim)
         self.word_dropout = WordDropout(unk_token=self.unk, p=args.p)
 
         self.input_dim = self.embed_dim
@@ -85,26 +87,27 @@ class Decoder(nn.Module):
                           batch_first=True)
 
         self.hidden_dim = (2 if self.bidirectional else 1) * self.num_layer * self.rnn_dim
-        self.proj = nn.Linear(self.hidden_dim, self.vocab_size)
+        self.proj_hidden = nn.Linear(self.z_dim, self.hidden_dim)
+        self.proj_word = nn.Linear(self.hidden_dim, self.vocab_size)
 
     def forward(self,
                 input: torch.Tensor,
                 z:torch.Tensor):
-        input = self.word_dropout(input)
-        input = self.text_embedder(input)
-        batch_size, seq_len, _ = input.size()
+        dropped = self.word_dropout(input)
+        word_emb = self.text_embedder(dropped)
+        batch_size, seq_len, _ = word_emb.size()
 
-        init = z
-        rnn_out, final_state = self.rnn(input, init)
+        h = self.proj_hidden(z)
+        rnn_out, final_state = self.rnn(word_emb, h)
 
-        y = self.proj(rnn_out.contiguous().view(-1, self.hidden_dim))
+        y = self.proj_word(rnn_out.contiguous().view(-1, self.hidden_dim))
         y = y.view(-1, self.vocab_size)
 
         return y
 
     def sample_(self, embed, h):
         output, h = self.rnn(embed, h)
-        y = self.proj(output)
+        y = self.proj_word(output)
         return y, h
 
 class RVAE(nn.Module):
@@ -114,13 +117,14 @@ class RVAE(nn.Module):
         self.eos = args.eos
         self.sos = args.sos
         self.pad = args.pad
+        self.max_len = args.max_len
 
         self.encoder = Encoder(args)
         self.decoder = Decoder(args)
 
     def kld_(self, mu, logvar):
-        kld = (mu.pow(2) + logvar.exp() - logvar - 1).sum()
-        return kld
+        kld = 0.5 * (mu.pow(2) + logvar.exp() - logvar - 1)
+        return kld.sum()
 
     def forward(self, input):
         h_t, (mu, logvar) = self.encoder(input)
@@ -138,20 +142,20 @@ class RVAE(nn.Module):
         word = torch.LongTensor([self.sos]).view(1, -1)
         word = word.cuda() if torch.cuda.is_available() else word
         z = z.view(1, 1, -1)
-        h = z
-        outputs = []
+        h = self.decoder.proj_hidden(z)
+        outputs = [self.sos]
 
-        while True:
+        for i in range(self.max_len):
             word = word.view(1, -1)
             emb = self.decoder.text_embedder(word)
             y, h = self.decoder.sample_(emb, h)
             y = F.softmax(y/temp, dim=-1)
 
-            idx = torch.multinomial(y.squeeze(), 1)
+            # idx = torch.multinomial(y.squeeze(), 1)
+            idx = torch.max(y, dim=-1)[1]
 
             word = torch.LongTensor([int(idx)])
             word = word.cuda() if torch.cuda.is_available() else word
-
             idx = idx.data.item()
 
             if idx == self.eos or idx == self.pad:
