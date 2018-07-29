@@ -67,6 +67,8 @@ class Decoder(nn.Module):
         self.pad = args.pad
 
         self.text_embedder = nn.Embedding(self.vocab_size, self.embed_dim, padding_idx=self.pad)
+        self.word_dropout = WordDropout(p = args.p)
+
         self.input_dim = self.embed_dim + self.z_dim
         self.num_layer = args.num_layer
         self.bidirectional = args.bidirectional
@@ -83,7 +85,8 @@ class Decoder(nn.Module):
         self.proj = nn.Linear(self.hidden_dim, self.vocab_size)
 
     def forward(self, input, z, init):
-        input = self.dropout(input)
+        input = self.word_dropout(input)
+        input = self.text_embedder(input)
         batch_size, seq_len, _ = input.size()
 
         z = torch.stack([z] * seq_len, dim = 1)
@@ -110,9 +113,6 @@ class RVAE(nn.Module):
 
         self.encoder = Encoder(args)
         self.decoder = Decoder(args)
-
-        self.encoder.text_embedder.weight.requires_grad = False
-        self.decoder.text_embedder.weight.requires_grad = False
 
     def kld_(self, mu, logvar):
         kld = (mu.pow(2) + logvar.exp() - logvar - 1).sum(1).mean()
