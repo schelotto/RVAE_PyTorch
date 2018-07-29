@@ -103,7 +103,7 @@ class Decoder(nn.Module):
         return y
 
     def sample_(self, embed, h):
-        output, h = self.decoder(embed, h)
+        output, h = self.rnn(embed, h)
         y = self.decoder.proj(output)
         return y, h
 
