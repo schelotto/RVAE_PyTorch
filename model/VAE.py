@@ -141,6 +141,7 @@ class RVAE(nn.Module):
         outputs = []
 
         while True:
+            word = word.view(1, -1)
             emb = self.decoder.text_embedder(word)
             y, h = self.decoder.sample_(emb, h)
             y = F.softmax(y/temp, dim=-1)
