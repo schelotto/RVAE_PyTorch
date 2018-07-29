@@ -143,7 +143,7 @@ class RVAE(nn.Module):
         while True:
             emb = self.decoder.text_embedder(word)
             y, h = self.decoder.sample_(emb, h)
-            y = F.softmax(y/temp, dim=0)
+            y = F.softmax(y/temp, dim=-1)
 
             idx = torch.multinomial(y, 1)
 
