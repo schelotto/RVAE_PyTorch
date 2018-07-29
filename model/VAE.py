@@ -65,7 +65,8 @@ class Decoder(nn.Module):
         self.vocab_size = args.vocab_size
         self.embed_dim = args.embed_dim
         self.pad = args.pad
-
+        self.unk = args.unk
+        
         self.text_embedder = nn.Embedding(self.vocab_size, self.embed_dim, padding_idx=self.pad)
         self.word_dropout = WordDropout(unk_token=self.unk, p=args.p)
 
