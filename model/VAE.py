@@ -40,11 +40,11 @@ class Encoder(nn.Module):
         self.text_embedder = nn.Embedding(self.vocab_size, self.embed_dim, padding_idx=self.pad)
         self.word_dropout = WordDropout(unk_token=self.unk, p=args.p)
 
-        self.rnn = nn.LSTM(self.embed_dim,
-                           self.rnn_dim,
-                           num_layers=self.num_layer,
-                           bidirectional=self.bidirectional,
-                           batch_first=True)
+        self.rnn = nn.GRU(self.embed_dim,
+                          self.rnn_dim,
+                          num_layers=self.num_layer,
+                          bidirectional=self.bidirectional,
+                          batch_first=True)
 
         self.hidden_dim = (2 if self.bidirectional else 1) * self.num_layer * self.rnn_dim
         self.proj_mu = nn.Linear(self.hidden_dim, self.z_dim)
@@ -78,11 +78,11 @@ class Decoder(nn.Module):
         self.vocab_size = args.vocab_size
 
         self.dropout = nn.Dropout(p = args.p)
-        self.rnn = nn.LSTM(self.input_dim,
-                           self.rnn_dim,
-                           num_layers=self.num_layer,
-                           bidirectional=self.bidirectional,
-                           batch_first=True)
+        self.rnn = nn.GRU(self.input_dim,
+                          self.rnn_dim,
+                          num_layers=self.num_layer,
+                          bidirectional=self.bidirectional,
+                          batch_first=True)
 
         self.hidden_dim = (2 if self.bidirectional else 1) * self.num_layer * self.rnn_dim
         self.proj = nn.Linear(self.hidden_dim, self.vocab_size)
@@ -94,7 +94,7 @@ class Decoder(nn.Module):
         input = self.text_embedder(input)
         batch_size, seq_len, _ = input.size()
 
-        init = (z, None)
+        init = z
         rnn_out, final_state = self.rnn(input, init)
 
         y = self.proj(rnn_out.contiguous().view(-1, self.hidden_dim))
@@ -138,7 +138,7 @@ class RVAE(nn.Module):
         word = torch.LongTensor([self.sos]).view(1, -1)
         word = word.cuda() if torch.cuda.is_available() else word
         z = z.view(1, 1, -1)
-        h = (z, None)
+        h = z
         outputs = []
 
         while True:
