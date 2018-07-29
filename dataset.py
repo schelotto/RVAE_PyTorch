@@ -63,11 +63,15 @@ class dataset(Dataset):
 
     @classmethod
     def ptb(cls,
-            text_field,
             batch_size=32,
             device=-1,
             vector='glove_840B',
             **kwargs):
+
+        text_field = Field(init_token='<sos>',
+                           eos_token='<eos>',
+                           batch_first=True,
+                           tokenize=lambda x:x.split())
 
         train, valid, test = cls.splits(text_field, **kwargs)
         train_iter, valid_iter, test_iter = data.BucketIterator.splits((train, valid, test),
@@ -88,9 +92,11 @@ class dataset(Dataset):
 
         return (train_iter, valid_iter, test_iter), text_field
 
-TEXT = Field(init_token='<sos>',
-             eos_token='<eos>',
-             tokenize=lambda x:x.split())
-(train, valid, test), TEXT = dataset.ptb(TEXT)
-print(len(TEXT.vocab.stoi))
-print(len(train))
+if __name__ == '__main__':
+    TEXT = Field(init_token='<sos>',
+                 eos_token='<eos>',
+                 batch_first=True,
+                 tokenize=lambda x:x.split())
+    (train, valid, test), TEXT = dataset.ptb(TEXT)
+    print(len(TEXT.vocab.stoi))
+    print(len(train))

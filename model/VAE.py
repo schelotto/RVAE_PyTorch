@@ -6,13 +6,13 @@ from torch.distributions.binomial import Binomial
 
 class WordDropout(nn.Module):
     def __init__(self,
-                 unk_token = '<unk>',
-                 p = 0.3):
+                 unk_token='<unk>',
+                 p=0.3):
         super(WordDropout, self).__init__()
         self.p = p
         self.unk_token = unk_token
 
-    def forward(self, inputs, UNK_IDX = 1):
+    def forward(self, inputs, UNK_IDX=1):
         if self.training:
             mask = Binomial(1, self.p * torch.ones_like(inputs)).sample().long()
             if torch.cuda.is_available():
