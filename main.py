@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import torch
 import torch.nn.functional as F
+import os
 
 from tqdm import tqdm
 from model.VAE import RVAE
@@ -18,14 +19,15 @@ if __name__ == '__main__':
     parser.add_argument('-z_dim', type=int, default=300, help='Dimension of hidden code. [default: 300]')
     parser.add_argument('-p', type=float, default=0.3, help='Dropout probability. [default: 0.3]')
     parser.add_argument('-bidirectional', default=False, action='store_true', help='Use bidirectional RNN.')
-    parser.add_argument('-word_emb', type=str, default='glove_840B',
+    parser.add_argument('-word_emb', type=str, default='glove_6B',
                         help='Word embedding name. In glove_840B, glove_6B or glove_42B')
     parser.add_argument('-save-file', type=str, default=None, help='File path/name for model to be saved.')
-    parser.add_argument('-log-interval', type=int, default=100, help='Number of iterations to sample generated sentences')
-    parser.add_argument('-train_iter', type=int, default=40000, help='Number of iterations for training')
+    parser.add_argument('-log-interval', type=int, default=1000, help='Number of iterations to sample generated sentences')
+    parser.add_argument('-train_iter', type=int, default=50000, help='Number of iterations for training')
+    parser.add_argument('-max_len', type=int, default=60, help='Max length of generated sample sentence')
     args = parser.parse_args()
 
-    (train_iter, _, _), text_field = load_data(args.word_emb)
+    (train_iter, valid_iter, _), text_field = load_data(args.word_emb)
     args.vocab_size = len(text_field.vocab.stoi)
     print('Vocabulary size: {}'.format(args.vocab_size))
     args.sos = text_field.vocab.stoi['<sos>']
@@ -36,7 +38,7 @@ if __name__ == '__main__':
     rvae = RVAE(args)
 
     kld_start_inc = 5000
-    kld_max = 0.15
+    kld_max = 1
     kld_weight = 0.001
     kld_inc = (kld_max - kld_weight) / (args.train_iter - kld_start_inc)
 
@@ -54,13 +56,14 @@ if __name__ == '__main__':
     rvae.decoder.text_embedder.weight.requires_grad = False
     rvae.encoder.text_embedder.weight.requires_grad = False
 
+
     update_params = filter(lambda x:x.requires_grad,  chain(rvae.encoder.parameters(), rvae.decoder.parameters()))
-    optim = torch.optim.Adam(update_params, lr = 1e-3)
+    optim = torch.optim.Adam(update_params, lr=1e-3)
 
     if torch.cuda.is_available():
         rvae = rvae.cuda()
 
-    kld_weight = 0.001
+    kld_weight = 0.0001
 
     for it in range(args.train_iter):
         batch = next(train_iter)
@@ -83,20 +86,42 @@ if __name__ == '__main__':
         optim.step()
 
         if (it + 1) % args.log_interval == 0:
+            rvae.eval()
             print('Iter {}/{} Recon Loss {:.4f} KL Loss {:.4f}'
                   .format(it + 1, args.train_iter, ce_loss.data.item(), kld.data.item()))
 
-            _, (mu, logvar) = rvae.encoder(text[0, :].view(1, -1))
-            real_z = mu + torch.randn_like(mu) * (0.5 * logvar).exp()
-            sampled_indices = rvae.sample_sentence(real_z)
-            sampled_sentence = list(map(lambda x: text_field.vocab.itos[x], sampled_indices))
-            print('Recon: {}'.format(' '.join(sampled_sentence)))
+            valid_batch = next(valid_iter)
+            valid_text = valid_batch.text
 
-            """
+            if torch.cuda.is_available():
+                valid_text = valid_text.cuda()
+
+            output, kld = rvae(valid_text[0, :].view(1, -1))
+            original_indices = valid_text[0, :].data
+            generated_indices = torch.max(output, -1)[1].data
+
+            if torch.cuda.is_available():
+                original_indices = original_indices.cpu()
+                generated_indices = generated_indices.cpu()
+
+            original_indices = original_indices.numpy()
+            generated_indices = generated_indices.numpy()
+
+            original_sentence = map(lambda x:text_field.vocab.itos[x], original_indices)
+            generated_sentence = map(lambda x:text_field.vocab.itos[x], generated_indices)
+
+            print('Origin: {}'.format(' '.join(filter(lambda x:x!='<pad>', original_sentence))))
+            print('Recons: {}'.format(' '.join(filter(lambda x:x!='<pad>', generated_sentence))))
+
             z = torch.randn(1, args.z_dim)
             if torch.cuda.is_available():
                 z = z.cuda()
             sampled_indices = rvae.sample_sentence(z)
-            sampled_sentence = list(map(lambda x:text_field.vocab.itos[x], sampled_indices))
+            sampled_sentence = map(lambda x:text_field.vocab.itos[x], sampled_indices)
             print('Sample: {}'.format(' '.join(sampled_sentence)))
-            """
+            rvae.train()
+
+            if not os.path.isdir('trained_model'):
+                os.makedirs('trained_model')
+
+            torch.save(rvae.state_dict(), 'trained_model/RVAE.pt')

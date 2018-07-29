@@ -65,7 +65,7 @@ class dataset(Dataset):
     @classmethod
     def ptb(cls,
             text_field,
-            batch_size=32,
+            batch_size=16,
             device=-1,
             vector: Optional[str] = None,
             **kwargs):
@@ -76,6 +76,7 @@ class dataset(Dataset):
                                                                        device=device,
                                                                        shuffle=True,
                                                                        repeat=True,
+                                                                       sort_key=lambda x:len(x.text),
                                                                        **kwargs)
         if vector == 'glove_6B':
             vectors = GloVe('6B', dim=300)
@@ -87,6 +88,7 @@ class dataset(Dataset):
         try:
             text_field.build_vocab(train, valid, test, vectors=vectors)
         except UnboundLocalError:
+            print('No word embedding loaded.')
             text_field.build_vocab(train, valid, test)
 
         return (iter(train_iter), iter(valid_iter), iter(test_iter)), text_field
@@ -106,6 +108,6 @@ if __name__ == '__main__':
                  eos_token='<eos>',
                  batch_first=True,
                  tokenize=lambda x:x.split())
-    (train, valid, test), TEXT = dataset.ptb(TEXT, vector='glove_840B')
+    (train, valid, test), TEXT = dataset.ptb(TEXT)
     print(len(TEXT.vocab.stoi))
     print(len(train))
