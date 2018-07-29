@@ -19,7 +19,7 @@ parser.add_argument('-save-file', type=str, default=None, help='File path/name f
 parser.add_argument('-log-interval', type=int, default=1000, help='Number of iterations to sample generated sentences')
 args = parser.parse_args()
 
-(train_iter, valid_iter, test_iter), text_field = load_data(args.word_embed)
+(train_iter, valid_iter, test_iter), text_field = load_data(args.word_emb)
 args.vocab_size = len(text_field.vocab.stoi)
 args.sos = text_field.vocab.stoi['<sos>']
 args.eos = text_field.vocab.stoi['<eos>']
