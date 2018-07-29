@@ -88,10 +88,10 @@ if __name__ == '__main__':
 
             _, (mu, logvar) = rvae.encoder(text)
             real_z = mu + torch.randn_like(mu) * (0.5 * logvar).exp()
-            sampled_indices = rvae.sample_sentence(z)
+            sampled_indices = rvae.sample_sentence(real_z)
             sampled_sentence = list(map(lambda x: text_field.vocab.itos[x], sampled_indices))
             print('Recon: {}'.format(' '.join(sampled_sentence)))
-            
+
             z = torch.randn(1, args.z_dim)
             if torch.cuda.is_available():
                 z = z.cuda()
