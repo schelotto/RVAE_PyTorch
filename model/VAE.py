@@ -113,6 +113,7 @@ class RVAE(nn.Module):
 
         self.eos = args.eos
         self.sos = args.sos
+        self.lad = args.pad
 
         self.encoder = Encoder(args)
         self.decoder = Decoder(args)
@@ -152,9 +153,10 @@ class RVAE(nn.Module):
             word = word.cuda() if torch.cuda.is_available() else word
 
             idx = idx.data.item()
-            outputs.append(idx)
 
-            if idx == self.eos:
+            if idx == self.eos or idx == self.pad:
                 break
+                
+            outputs.append(idx)
 
         return outputs
