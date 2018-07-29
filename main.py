@@ -32,8 +32,32 @@ if __name__ == '__main__':
     args.pad = text_field.vocab.stoi['<pad>']
 
     rvae = RVAE(args)
+
+    ###########################
+    ## ASSIGN WORD EMBEDDING ##
+    ###########################
+
     rvae.decoder.text_embedder.weight.data = text_field.vocab.vectors.data
     rvae.encoder.text_embedder.weight.data = text_field.vocab.vectors.data
 
-    update_params = chain(rvae.encoder.parameters(), rvae.decoder.parameters())
-    update_params = filter(lambda x:x.requires_grad, update_params)
+    ###########################
+    ## ASSIGN ADAM OPTIMIZER ##
+    ###########################
+
+    rvae.decoder.text_embedder.weight.requires_grad = False
+    rvae.encoder.text_embedder.weight.requires_grad = False
+
+    update_params = filter(lambda x:x.requires_grad,  chain(rvae.encoder.parameters(), rvae.decoder.parameters()))
+    optim = torch.optim.Adam(update_params, lr = 1e-3)
+
+    if torch.cuda.is_available():
+        rvae = rvae.cuda()
+
+    kld_weight = 0.001
+
+    for it in range(args.train_iter):
+        batch = next(train_iter)
+        text = batch.text
+        if torch.cuda.is_available():
+            text = text.cuda()
+            print(text)
