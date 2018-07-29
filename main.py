@@ -86,7 +86,7 @@ if __name__ == '__main__':
             print('Iter {}/{} Recon Loss {:.4f} KL Loss {:.4f}'
                   .format(it + 1, args.train_iter, ce_loss.data.item(), kld.data.item()))
 
-            _, (mu, logvar) = rvae.encoder(text)
+            _, (mu, logvar) = rvae.encoder(text[0, :].view(1, -1))
             real_z = mu + torch.randn_like(mu) * (0.5 * logvar).exp()
             sampled_indices = rvae.sample_sentence(real_z)
             sampled_sentence = list(map(lambda x: text_field.vocab.itos[x], sampled_indices))
