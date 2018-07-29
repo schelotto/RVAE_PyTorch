@@ -3,7 +3,7 @@ import numpy as np
 
 from tqdm import tqdm
 from model.VAE import RVAE
-from dataset import dataset
+from dataset import load_data
 from torchtext.data import Field
 
 parser = argparse.ArgumentParser(description='Recurrent VAE')
@@ -19,11 +19,10 @@ parser.add_argument('-save-file', type=str, default=None, help='File path/name f
 parser.add_argument('-log-interval', type=int, default=1000, help='Number of iterations to sample generated sentences')
 args = parser.parse_args()
 
-text_field = Field(init_token='<sos>',
-                   eos_token='<eos>',
-                   unk_token='<unk>',
-                   pad_token='<pad>',
-                   batch_first=True,
-                   tokenize=lambda x:x.split())
+(train_iter, valid_iter, test_iter), text_field = load_data(args.word_embed)
+args.vocab_size = len(text_field.vocab.stoi)
+args.sos = text_field.vocab.stoi['<sos>']
+args.eos = text_field.vocab.stoi['<eos>']
+args.pad = text_field.vocab.stoi['<pad>']
 
-(train_iter, valid_iter, test_iter), text_field = dataset.ptb(text_field, args.word_emb)
+rvae = RVAE(args)
