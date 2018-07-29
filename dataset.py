@@ -1,5 +1,6 @@
 from torchtext.data import Dataset
 from urllib.request import urlretrieve
+from torchtext.data import Field
 
 import torchtext.data as data
 import os
@@ -11,7 +12,10 @@ class dataset(Dataset):
     def sort_key(ex):
         return len(ex.text)
 
-    def __init__(self, text_field, path=None, examples=None, **kwargs):
+    def __init__(self,
+                 text_field,
+                 train='ptb.train.txt', test='ptb.test.txt', valid='ptb.valid.txt',
+                 path=None, examples=None, **kwargs):
 
         fields = [('text', text_field)]
 
@@ -19,14 +23,11 @@ class dataset(Dataset):
         if not os.path.isdir(path):
             os.mkdir(path)
 
-        train_file = 'ptb.train.txt'
-        test_file = 'ptb.test.txt'
-        valid_file = 'ptb.valid.txt'
         url = 'https://raw.githubusercontent.com/tomsercu/lstm/master/data/'
 
-        for file in [train_file, test_file, valid_file]:
+        for file in [train, test, valid]:
             if not os.path.isfile(os.path.join(path, file)):
-                print('Downloading {} data...'.format(file.split('.')[1]), end = '')
+                print('Downloading {} data...'.format(file.split('.')[1]), end='')
                 urlretrieve(url + file, os.path.join(path, file))
                 print('Done')
             else:
@@ -34,24 +35,22 @@ class dataset(Dataset):
 
         if examples is None:
             examples = []
-            with open(os.path.join(path, train_file), errors='ignore') as f:
-                examples += [data.Example.fromlist(line, fields) for line in f]
-                self.train_size = len(examples)
-                print(self.train_size)
-            with open(os.path.join(path, valid_file), errors='ignore') as f:
-                examples += [data.Example.fromlist(line, fields) for line in f]
-                self.valid_size = len(examples) - self.train_size
-                print(self.valid_size)
-            with open(os.path.join(path, test_file), errors='ignore') as f:
-                examples += [data.Example.fromlist(line, fields) for line in f]
-                self.test_size = len(examples) - self.train_size - self.valid_size
-                print(self.test_size)
+            with open(path + '/' + train, errors='ignore') as f:
+                examples += [data.Example.fromlist([line], fields) for line in f]
+            with open(os.path.join(path, valid), errors='ignore') as f:
+                examples += [data.Example.fromlist([line], fields) for line in f]
+            with open(os.path.join(path, test), errors='ignore') as f:
+                examples += [data.Example.fromlist([line], fields) for line in f]
 
         super(dataset, self).__init__(fields=fields, examples=examples, **kwargs)
 
     @classmethod
-    def splits(cls, text_field, path=None, root='.data', train=None, validation=None,
-               test=None, **kwargs):
+    def splits(cls,
+               text_field,
+               path=None,
+               root='.data',
+               **kwargs):
+
         examples = cls(text_field, **kwargs).examples
         train_index = 42068
         valid_index = 3370
@@ -60,3 +59,27 @@ class dataset(Dataset):
         return (cls(text_field, examples=examples[:train_index]),
                 cls(text_field, examples=examples[train_index:(train_index + valid_index)]),
                 cls(text_field, examples=examples[-test_index:]))
+
+    @classmethod
+    def ptb(cls,
+            text_field,
+            batch_size=32,
+            device=-1,
+            **kwargs):
+
+        train, valid, test = cls.splits(text_field, **kwargs)
+        train_iter, valid_iter, test_iter = data.BucketIterator.splits((train, valid, test),
+                                                                       batch_sizes=(batch_size, batch_size, batch_size),
+                                                                       device=device,
+                                                                       **kwargs)
+        text_field.build_vocab(train, valid, test)
+        return (train_iter, valid_iter, test_iter), text_field
+
+"""
+TEXT = Field(init_token='<sos>',
+             eos_token='<eos>',
+             tokenize=lambda x:x.split())
+(train, valid, test), TEXT = dataset.ptb(TEXT)
+print(len(TEXT.vocab.stoi))
+print(len(train))
+"""
