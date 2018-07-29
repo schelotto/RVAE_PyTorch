@@ -66,7 +66,7 @@ class dataset(Dataset):
             text_field,
             batch_size=32,
             device=-1,
-            vector='glove_6B',
+            vector='glove_840B',
             **kwargs):
 
         train, valid, test = cls.splits(text_field, **kwargs)
