@@ -92,10 +92,11 @@ if __name__ == '__main__':
             sampled_sentence = list(map(lambda x: text_field.vocab.itos[x], sampled_indices))
             print('Recon: {}'.format(' '.join(sampled_sentence)))
 
+            """
             z = torch.randn(1, args.z_dim)
             if torch.cuda.is_available():
                 z = z.cuda()
-
             sampled_indices = rvae.sample_sentence(z)
             sampled_sentence = list(map(lambda x:text_field.vocab.itos[x], sampled_indices))
             print('Sample: {}'.format(' '.join(sampled_sentence)))
+            """
