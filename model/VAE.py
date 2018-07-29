@@ -147,7 +147,7 @@ class RVAE(nn.Module):
             y, h = self.decoder.sample_(emb, h)
             y = F.softmax(y/temp, dim=-1)
 
-            _, idx = torch.topk(y.squeeze(), 1, dim=-1)
+            idx = torch.max(y.squeeze())[0]
 
             word = torch.LongTensor([int(idx)])
             word = word.cuda() if torch.cuda.is_available() else word
