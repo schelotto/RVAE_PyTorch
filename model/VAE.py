@@ -66,7 +66,7 @@ class Decoder(nn.Module):
         self.embed_dim = args.embed_dim
         self.pad = args.pad
         self.unk = args.unk
-        
+
         self.text_embedder = nn.Embedding(self.vocab_size, self.embed_dim, padding_idx=self.pad)
         self.word_dropout = WordDropout(unk_token=self.unk, p=args.p)
 
@@ -114,7 +114,7 @@ class RVAE(nn.Module):
         self.decoder = Decoder(args)
 
     def kld_(self, mu, logvar):
-        kld = (mu.pow(2) + logvar.exp() - logvar - 1).sum(1).mean()
+        kld = (mu.pow(2) + logvar.exp() - logvar - 1).sum()
         return kld
 
     def forward(self, input):
