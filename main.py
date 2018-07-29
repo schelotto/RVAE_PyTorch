@@ -26,3 +26,4 @@ args.eos = text_field.vocab.stoi['<eos>']
 args.pad = text_field.vocab.stoi['<pad>']
 
 rvae = RVAE(args)
+print(rvae)
