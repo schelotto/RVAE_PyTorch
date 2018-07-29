@@ -1,6 +1,7 @@
 from torchtext.data import Dataset
 from urllib.request import urlretrieve
 from torchtext.data import Field
+from torchtext.vocab import GloVe
 
 import torchtext.data as data
 import os
@@ -65,6 +66,7 @@ class dataset(Dataset):
             text_field,
             batch_size=32,
             device=-1,
+            vector='glove_6B',
             **kwargs):
 
         train, valid, test = cls.splits(text_field, **kwargs)
@@ -72,14 +74,23 @@ class dataset(Dataset):
                                                                        batch_sizes=(batch_size, batch_size, batch_size),
                                                                        device=device,
                                                                        **kwargs)
-        text_field.build_vocab(train, valid, test)
+        if vector == 'glove_6B':
+            vectors = GloVe('6B', dim=300)
+        elif vector == 'glove_840B':
+            vectors = GloVe('840B', dim=300)
+        elif vector == 'glove_42B':
+            vectors = GloVe('42B', dim=300)
+
+        if vectors is None:
+            text_field.build_vocab(train, valid, test)
+        else:
+            text_field.build_vocab(train, valid, test, vectors=vectors)
+
         return (train_iter, valid_iter, test_iter), text_field
 
-"""
 TEXT = Field(init_token='<sos>',
              eos_token='<eos>',
              tokenize=lambda x:x.split())
 (train, valid, test), TEXT = dataset.ptb(TEXT)
 print(len(TEXT.vocab.stoi))
 print(len(train))
-"""
