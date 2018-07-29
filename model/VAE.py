@@ -118,7 +118,7 @@ class RVAE(nn.Module):
         self.decoder = Decoder(args)
 
     def kld_(self, mu, logvar):
-        kld = (mu.pow(2) + logvar.exp() - logvar - 1).sum()
+        kld = (mu.pow(2) + logvar.exp() - logvar - 1).mean()
         return kld
 
     def forward(self, input):
@@ -136,14 +136,12 @@ class RVAE(nn.Module):
         """
         word = torch.LongTensor([self.sos]).view(1, -1)
         word = word.cuda() if torch.cuda.is_available() else word
-        h = z.view(1, 1, -1)
-
+        z = z.view(1, 1, -1)
+        h = (z, z)
         outputs = []
 
         while True:
             emb = self.decoder.text_embedder(word)
-            print(emb.size())
-            print(h.size())
             y, h = self.decoder.sample_(emb, h)
             y = F.softmax(y/temp, dim=0)
 
